@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-//! Schemas for `bson` types (requires the `bson_2` feature).
-#![cfg(feature = "bson_2")]
+//! Schemas for `bson` 3 types (requires the `bson_3` feature).
+#![cfg(feature = "bson_3")]
 
-use bson::{oid::ObjectId, Binary, Bson, DateTime, Decimal128, Document, Timestamp};
+use bson3::{oid::ObjectId, Binary, Bson, DateTime, Decimal128, Document, Timestamp};
 use mongo_json_schema::Schema;
 use serde_json::json;
 

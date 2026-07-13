@@ -19,20 +19,23 @@ indexmap = { workspace = true }
 mongo_json_schema_derive = { workspace = true, optional = true }
 
 chrono = { workspace = true, optional = true }
-bson = { workspace = true, optional = true }
+bson2 = { workspace = true, optional = true }
+bson3 = { workspace = true, optional = true }
 
 [features]
 default = ["derive"]
 derive = ["dep:mongo_json_schema_derive"]
 # Type support for third-party crates.
 chrono_0-4 = ["dep:chrono"]
-bson_2 = ["dep:bson"]
+bson_2 = ["dep:bson2"]
+bson_3 = ["dep:bson3"]
 
 [dev-dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true, features = ["clock"] }
-bson = { workspace = true }
+bson2 = { workspace = true }
+bson3 = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

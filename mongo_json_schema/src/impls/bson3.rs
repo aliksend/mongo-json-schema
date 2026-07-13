@@ -1,9 +1,9 @@
-//! Schemas for [`bson`] `2` types (feature `bson_2`).
+//! Schemas for [`bson`](bson3) `3` types (feature `bson_3`).
 
 use crate::schema::SchemaObject;
 use crate::Schema;
 
-use bson::{oid::ObjectId, Binary, Bson, DateTime, Decimal128, Document, Regex, Timestamp, Uuid};
+use bson3::{oid::ObjectId, Binary, Bson, DateTime, Decimal128, Document, Regex, Timestamp, Uuid};
 
 impl Schema for ObjectId {
     fn mongo_json_schema() -> SchemaObject {

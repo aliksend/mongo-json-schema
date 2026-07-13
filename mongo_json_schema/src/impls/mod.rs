@@ -8,4 +8,7 @@ mod std_types;
 mod chrono;
 
 #[cfg(feature = "bson_2")]
-mod bson;
+mod bson2;
+
+#[cfg(feature = "bson_3")]
+mod bson3;

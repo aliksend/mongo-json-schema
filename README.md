@@ -32,6 +32,7 @@ cannot be represented.
 | `derive`     | ✅      | the `#[derive(Schema)]` macro                                                       |
 | `chrono_0-4` |         | schemas for `chrono` 0.4 types (`DateTime` → `date`, ...)                           |
 | `bson_2`     |         | schemas for `bson` 2 types (`ObjectId` → `objectId`, `Decimal128` → `decimal`, ...) |
+| `bson_3`     |         | schemas for `bson` 3 types (`ObjectId` → `objectId`, `Decimal128` → `decimal`, ...) |
 
 ```toml
 [dependencies]
