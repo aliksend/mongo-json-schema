@@ -206,14 +206,16 @@ fn object_schema_expr(
 
         let key = field_key(&ident.to_string(), &fattr.rename, rename_all);
 
+        // A `bson_type` override builds the field schema from scratch, so the
+        // field's type need not implement `Schema` at all. Otherwise we start
+        // from the type's own derived/manual schema.
+        let field_schema_init = if let Some(bt) = &fattr.bson_type {
+            quote! { let mut field_schema = #cr::SchemaObject::of_bson_type(#bt); }
+        } else {
+            quote! { let mut field_schema = <#ty as #cr::Schema>::mongo_json_schema(); }
+        };
+
         let mut field_build: Vec<TokenStream2> = Vec::new();
-        if let Some(bt) = &fattr.bson_type {
-            field_build.push(quote! {
-                field_schema.bson_type = ::std::option::Option::Some(
-                    #cr::SingleOrVec::Single(::std::boxed::Box::new(#bt.to_owned()))
-                );
-            });
-        }
         if let Some(desc) = &fattr.description {
             field_build
                 .push(quote! { field_schema.description = ::std::option::Option::Some(#desc.to_owned()); });
@@ -226,9 +228,12 @@ fn object_schema_expr(
         field_build.extend(validation_setters(&fattr.validation));
 
         // A field is required unless it (or the container) has a default, or it is
-        // an `Option`.
+        // an `Option`. With a `bson_type` override the type is not consulted (it
+        // may not implement `Schema`), so the field is treated as required.
         let required_stmt = if container_default || fattr.default {
             quote! {}
+        } else if fattr.bson_type.is_some() {
+            quote! { required.push(#key.to_owned()); }
         } else {
             quote! {
                 if !<#ty as #cr::Schema>::_mongo_is_option() {
@@ -239,7 +244,7 @@ fn object_schema_expr(
 
         stmts.push(quote! {
             {
-                let mut field_schema = <#ty as #cr::Schema>::mongo_json_schema();
+                #field_schema_init
                 #(#field_build)*
                 properties.insert(#key.to_owned(), field_schema);
             }

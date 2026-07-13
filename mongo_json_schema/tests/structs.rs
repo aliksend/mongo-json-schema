@@ -209,6 +209,29 @@ fn bson_type_override() {
     );
 }
 
+// A type that does *not* implement `Schema` (no derive, no manual impl). A
+// `bson_type` override must let it be used as a field without the derive
+// requiring the field's type to implement `Schema`.
+struct A;
+
+#[derive(Schema)]
+struct WithBsonTypeForNonSchemaType {
+    #[schema(bson_type = "string")]
+    value: A,
+}
+
+#[test]
+fn bson_type_override_on_type_without_schema_impl() {
+    assert_eq!(
+        WithBsonTypeForNonSchemaType::mongo_json_schema().to_value(),
+        json!({
+            "bsonType": "object",
+            "properties": { "value": { "bsonType": "string" } },
+            "required": ["value"]
+        })
+    );
+}
+
 #[derive(Schema)]
 struct WithValidation {
     #[schema(minimum = 0, maximum = 120)]
