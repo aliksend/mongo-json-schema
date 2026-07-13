@@ -1,0 +1,38 @@
+[package]
+name = "mongo_json_schema"
+description = "Generate MongoDB-compatible ($jsonSchema) JSON Schemas from Rust types, à la schemars."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+keywords = ["mongodb", "jsonschema", "bson", "serde", "schema"]
+categories = ["encoding", "database"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+indexmap = { workspace = true }
+# Version pinned in the root Cargo.toml's [workspace.dependencies] (lockstep with this crate's version).
+mongo_json_schema_derive = { workspace = true, optional = true }
+
+chrono = { workspace = true, optional = true }
+bson = { workspace = true, optional = true }
+
+[features]
+default = ["derive"]
+derive = ["dep:mongo_json_schema_derive"]
+# Type support for third-party crates.
+chrono_0-4 = ["dep:chrono"]
+bson_2 = ["dep:bson"]
+
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true, features = ["clock"] }
+bson = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true

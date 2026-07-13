@@ -1,0 +1,94 @@
+name: Publish to crates.io
+
+# Publishes both crates whenever a version tag (e.g. `v0.1.0`) is pushed.
+# Before publishing, the tag version is checked against every place the version
+# is declared in the workspace, so a mistagged / out-of-sync release fails fast
+# instead of shipping a broken pair of crates.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Documentation must build cleanly before anything is published. Reuses the
+  # same check as the standalone Docs workflow.
+  docs:
+    name: Docs
+    uses: ./.github/workflows/docs.yml
+
+  publish:
+    needs: docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag version
+        id: version
+        run: |
+          # Strip an optional leading "v" from the tag (v0.1.0 -> 0.1.0).
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing version: $VERSION"
+
+      - name: Verify versions match the tag
+        env:
+          TAG: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # `cargo metadata` resolves workspace inheritance, so package versions
+          # reflect [workspace.package].version, and `.req` is the dependency
+          # version requirement declared in [workspace.dependencies].
+          cargo metadata --format-version 1 --no-deps --locked > metadata.json
+
+          main_version=$(jq -r '.packages[] | select(.name == "mongo_json_schema") | .version' metadata.json)
+          derive_version=$(jq -r '.packages[] | select(.name == "mongo_json_schema_derive") | .version' metadata.json)
+          dep_req=$(jq -r '.packages[] | select(.name == "mongo_json_schema") | .dependencies[] | select(.name == "mongo_json_schema_derive") | .req' metadata.json)
+          # The pin is "=0.1.0"; drop the leading "=" for comparison.
+          dep_version="${dep_req#=}"
+
+          echo "tag ................................. $TAG"
+          echo "mongo_json_schema version .......... $main_version"
+          echo "mongo_json_schema_derive version ... $derive_version"
+          echo "derive dependency requirement ...... $dep_req"
+
+          fail=0
+          if [ "$main_version" != "$TAG" ]; then
+            echo "::error::mongo_json_schema version ($main_version) does not match tag ($TAG)"
+            fail=1
+          fi
+          if [ "$derive_version" != "$TAG" ]; then
+            echo "::error::mongo_json_schema_derive version ($derive_version) does not match tag ($TAG)"
+            fail=1
+          fi
+          if [ "$dep_version" != "$TAG" ]; then
+            echo "::error::mongo_json_schema_derive dependency requirement ($dep_req) does not match tag ($TAG)"
+            fail=1
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "Version check failed. Bump every version in Cargo.toml to $TAG before tagging."
+            exit 1
+          fi
+          echo "All versions match the tag ($TAG)."
+
+      - name: Run tests
+        run: cargo test --workspace --all-features --locked
+
+      - name: Publish mongo_json_schema_derive
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p mongo_json_schema_derive --locked
+
+      # `cargo publish` waits for the new version to appear in the index before
+      # exiting, so the dependent crate below resolves it without a manual sleep.
+      - name: Publish mongo_json_schema
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish -p mongo_json_schema --locked
